@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 
-// M4: Kanban board stages
+// M4: Board stages
 export const STAGES = [
   { id: 'todo', label: 'To Do' },
   { id: 'in-progress', label: 'In Progress' },
@@ -9,12 +9,46 @@ export const STAGES = [
   { id: 'done', label: 'Done' },
 ];
 
-// Replace with the actual names from PRD section 8
+// Replace with actual names from PRD section 8
 export const TEAM = [
   'Teammate A',
   'Teammate B',
   'Teammate C',
 ];
+
+// M6: Official task colours from DESIGN.md
+const TASK_STYLES = {
+  feature: {
+    label: 'Feature',
+    icon: '+',
+    color: '#1D4ED8',
+    background: '#DBEAFE',
+  },
+  bug: {
+    label: 'Bug',
+    icon: '🐞',
+    color: '#BE123C',
+    background: '#FFE4E6',
+  },
+};
+
+// M6: Reusable task-type badge
+function TaskTypeBadge({ type }) {
+  const style = TASK_STYLES[type] || TASK_STYLES.feature;
+
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
+      style={{
+        color: style.color,
+        backgroundColor: style.background,
+      }}
+    >
+      <span aria-hidden="true">{style.icon}</span>
+      {style.label}
+    </span>
+  );
+}
 
 // Persistent browser storage
 export function useLocalStorage(key, initialValue) {
@@ -38,7 +72,7 @@ export function useLocalStorage(key, initialValue) {
   return [value, setValue];
 }
 
-// M4: Initial tasks
+// M4: Initial sample tasks
 const initialTasks = [
   {
     id: 'task-1',
@@ -82,7 +116,7 @@ const initialTasks = [
   },
 ];
 
-// Create an empty task form
+// Blank task form
 function emptyTask() {
   return {
     id: '',
@@ -102,19 +136,19 @@ export default function App() {
     initialTasks
   );
 
-  // M5: Modal state
+  // M5: Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyTask);
 
-  // Open a blank form
+  // Create task
   function addTask() {
     setForm(emptyTask());
     setEditing(false);
     setModalOpen(true);
   }
 
-  // Open the form with the selected task
+  // Edit existing task
   function editTask(task) {
     setForm({
       ...task,
@@ -124,7 +158,7 @@ export default function App() {
     setModalOpen(true);
   }
 
-  // Update form fields
+  // Update form
   function updateField(event) {
     const { name, value } = event.target;
 
@@ -134,12 +168,12 @@ export default function App() {
     }));
   }
 
-  // Save a new or edited task
+  // Save task
   function saveTask(event) {
     event.preventDefault();
 
     if (!form.title.trim()) {
-      alert('Please enter a task title.');
+      alert('Enter a task title.');
       return;
     }
 
@@ -163,11 +197,15 @@ export default function App() {
     setModalOpen(false);
   }
 
-  // Delete selected task
+  // Delete task
   function deleteTask() {
     if (!editing) return;
 
-    if (window.confirm('Are you sure you want to delete this task?')) {
+    if (
+      window.confirm(
+        'Delete this task? This cannot be undone.'
+      )
+    ) {
       setTasks((previous) =>
         previous.filter((task) => task.id !== form.id)
       );
@@ -177,30 +215,37 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
+    <div
+      className="min-h-screen p-6"
+      style={{
+        backgroundColor: '#F8FAFC',
+        color: '#0F172A',
+      }}
+    >
       {/* Header */}
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-3xl font-bold">
             Vibecoding Project Tracker
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-600">
             Team starter
           </p>
         </div>
 
         <button
           onClick={addTask}
-          className="rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg px-5 py-3 font-semibold text-white hover:opacity-90"
+          style={{ backgroundColor: '#0F766E' }}
         >
-          + Add Task
+          + Add task
         </button>
       </header>
 
-      {/* M11: Anchor Board will go here */}
+      {/* M11: Anchor Board goes here */}
 
-      {/* Kanban board */}
+      {/* M4 + M6: Kanban Board */}
       <main className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {STAGES.map((stage) => {
           const stageTasks = tasks.filter(
@@ -210,10 +255,11 @@ export default function App() {
           return (
             <section
               key={stage.id}
-              className="min-h-80 rounded-xl bg-slate-200/60 p-4"
+              className="min-h-80 rounded-xl p-4"
+              style={{ backgroundColor: '#F1F5F9' }}
             >
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="font-semibold text-slate-800">
+                <h2 className="text-lg font-semibold">
                   {stage.label}
                 </h2>
 
@@ -223,21 +269,32 @@ export default function App() {
               </div>
 
               <div className="space-y-3">
+                {stageTasks.length === 0 && (
+                  <p className="text-sm text-slate-500">
+                    No tasks here yet.
+                  </p>
+                )}
+
                 {stageTasks.map((task) => (
                   <button
                     key={task.id}
                     onClick={() => editTask(task)}
-                    className="block w-full rounded-lg border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-400 hover:shadow-md"
+                    className="block w-full rounded-xl border bg-white p-4 text-left shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+                    style={{ borderColor: '#CBD5E1' }}
                   >
-                    <h3 className="font-semibold text-slate-900">
-                      {task.title}
-                    </h3>
+                    <div className="mb-3 flex items-start justify-between gap-2">
+                      <h3 className="text-base font-semibold">
+                        {task.title}
+                      </h3>
 
-                    <p className="mt-2 text-sm text-slate-500">
+                      <TaskTypeBadge type={task.type} />
+                    </div>
+
+                    <p className="text-sm text-slate-600">
                       {task.description}
                     </p>
 
-                    <p className="mt-4 text-xs text-slate-600">
+                    <p className="mt-4 text-sm text-slate-600">
                       Assigned to: {task.assignee}
                     </p>
                   </button>
@@ -248,7 +305,7 @@ export default function App() {
         })}
       </main>
 
-      {/* M5: Create/Edit Task Modal */}
+      {/* M5 + M6: Task Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
           <div
@@ -257,13 +314,17 @@ export default function App() {
             aria-labelledby="task-modal-title"
             className="my-auto w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
           >
-            <div className="mb-5 flex items-center justify-between">
-              <h2
-                id="task-modal-title"
-                className="text-xl font-bold text-slate-900"
-              >
-                {editing ? 'Edit Task' : 'Create New Task'}
-              </h2>
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2
+                  id="task-modal-title"
+                  className="text-xl font-bold"
+                >
+                  {editing ? 'Edit task' : 'Create a task'}
+                </h2>
+
+                <TaskTypeBadge type={form.type} />
+              </div>
 
               <button
                 type="button"
@@ -276,7 +337,6 @@ export default function App() {
             </div>
 
             <form onSubmit={saveTask} className="space-y-4">
-              {/* Title */}
               <label className="block text-sm font-medium">
                 Task Title *
                 <input
@@ -285,24 +345,22 @@ export default function App() {
                   onChange={updateField}
                   required
                   className="mt-1 w-full rounded-lg border p-3"
-                  placeholder="Enter task title"
+                  placeholder="Enter a task title"
                 />
               </label>
 
-              {/* Description */}
               <label className="block text-sm font-medium">
                 Description
                 <textarea
                   name="description"
                   value={form.description}
                   onChange={updateField}
-                  rows="3"
+                  rows={3}
                   className="mt-1 w-full rounded-lg border p-3"
                   placeholder="Describe the task"
                 />
               </label>
 
-              {/* Type */}
               <label className="block text-sm font-medium">
                 Task Type
                 <select
@@ -316,7 +374,6 @@ export default function App() {
                 </select>
               </label>
 
-              {/* Status */}
               <label className="block text-sm font-medium">
                 Status
                 <select
@@ -333,7 +390,6 @@ export default function App() {
                 </select>
               </label>
 
-              {/* Assignee */}
               <label className="block text-sm font-medium">
                 Assigned To
                 <select
@@ -350,7 +406,6 @@ export default function App() {
                 </select>
               </label>
 
-              {/* Due date */}
               <label className="block text-sm font-medium">
                 Due Date
                 <input
@@ -362,7 +417,6 @@ export default function App() {
                 />
               </label>
 
-              {/* Created date */}
               <label className="block text-sm font-medium">
                 Created Date
                 <input
@@ -374,7 +428,6 @@ export default function App() {
                 />
               </label>
 
-              {/* Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 {editing ? (
                   <button
@@ -382,7 +435,7 @@ export default function App() {
                     onClick={deleteTask}
                     className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
                   >
-                    Delete Task
+                    Delete task
                   </button>
                 ) : (
                   <span />
@@ -399,9 +452,10 @@ export default function App() {
 
                   <button
                     type="submit"
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                    className="rounded-lg px-4 py-2 text-white hover:opacity-90"
+                    style={{ backgroundColor: '#0F766E' }}
                   >
-                    {editing ? 'Save Changes' : 'Create Task'}
+                    Save task
                   </button>
                 </div>
               </div>
