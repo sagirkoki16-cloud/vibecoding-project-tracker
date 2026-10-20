@@ -1,7 +1,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 
-// M4: Kanban stages
+// ==========================================
+// M4: KANBAN DATA MODEL
+// ==========================================
+
 export const STAGES = [
   { id: 'todo', label: 'To Do' },
   { id: 'in-progress', label: 'In Progress' },
@@ -9,14 +12,13 @@ export const STAGES = [
   { id: 'done', label: 'Done' },
 ];
 
-// Replace with the names in your PRD
+// Replace with names from your PRD
 export const TEAM = [
   'Teammate A',
   'Teammate B',
   'Teammate C',
 ];
 
-// M6: Task type colours
 const TASK_STYLES = {
   feature: {
     label: 'Feature',
@@ -32,7 +34,6 @@ const TASK_STYLES = {
   },
 };
 
-// M8: Deadline colours
 const DUE_STYLES = {
   calm: {
     color: '#334155',
@@ -74,12 +75,27 @@ const CONTEXT_TEMPLATE = `## Background
 ## Pick up
 `;
 
-// M11: Four permanent deliverables
 const DELIVERABLES = [
-  { id: 'presentation', label: 'Presentation', icon: '▣' },
-  { id: 'demo', label: 'Demo', icon: '▶' },
-  { id: 'report', label: 'Report', icon: '▤' },
-  { id: 'documentation', label: 'Documentation', icon: '▥' },
+  {
+    id: 'presentation',
+    label: 'Presentation',
+    icon: '▣',
+  },
+  {
+    id: 'demo',
+    label: 'Demo',
+    icon: '▶',
+  },
+  {
+    id: 'report',
+    label: 'Report',
+    icon: '▤',
+  },
+  {
+    id: 'documentation',
+    label: 'Documentation',
+    icon: '▥',
+  },
 ];
 
 const INITIAL_ANCHORS = {
@@ -89,30 +105,44 @@ const INITIAL_ANCHORS = {
   documentation: '',
 };
 
-function isValidUrl(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === 'https:' ||
-      url.protocol === 'http:';
-  } catch {
-    return false;
-  }
-}
+// ==========================================
+// UTILITIES
+// ==========================================
 
 function localDate(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
+
   return `${year}-${month}-${day}`;
+}
+
+function isValidUrl(value) {
+  try {
+    const url = new URL(value);
+
+    return (
+      url.protocol === 'https:' ||
+      url.protocol === 'http:'
+    );
+  } catch {
+    return false;
+  }
 }
 
 function getDueState(task, today) {
   if (task.status === 'done') {
-    return { state: 'neutral', label: 'Completed' };
+    return {
+      state: 'neutral',
+      label: 'Completed',
+    };
   }
 
   if (!task.dueDate) {
-    return { state: 'neutral', label: 'No due date' };
+    return {
+      state: 'neutral',
+      label: 'No due date',
+    };
   }
 
   if (task.dueDate < today) {
@@ -123,54 +153,26 @@ function getDueState(task, today) {
   }
 
   if (task.dueDate === today) {
-    return { state: 'warning', label: 'Due today' };
+    return {
+      state: 'warning',
+      label: 'Due today',
+    };
   }
 
   const tomorrow = new Date(`${today}T12:00:00`);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
   if (task.dueDate === localDate(tomorrow)) {
-    return { state: 'warning', label: 'Due tomorrow' };
+    return {
+      state: 'warning',
+      label: 'Due tomorrow',
+    };
   }
 
   return {
     state: 'calm',
     label: `Due ${task.dueDate}`,
   };
-}
-
-function TaskTypeBadge({ type }) {
-  const style = TASK_STYLES[type] || TASK_STYLES.feature;
-
-  return (
-    <span
-      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
-      style={{
-        color: style.color,
-        backgroundColor: style.background,
-      }}
-    >
-      <span aria-hidden="true">{style.icon}</span>
-      {style.label}
-    </span>
-  );
-}
-
-function DueBadge({ task, today }) {
-  const due = getDueState(task, today);
-  const style = DUE_STYLES[due.state];
-
-  return (
-    <span
-      className="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-      style={{
-        color: style.color,
-        backgroundColor: style.background,
-      }}
-    >
-      {due.label}
-    </span>
-  );
 }
 
 function getInitials(name) {
@@ -183,27 +185,6 @@ function getInitials(name) {
     .join('')
     .slice(0, 2)
     .toUpperCase();
-}
-
-function OwnerBadge({ name }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-        style={{
-          backgroundColor: '#CCFBF1',
-          color: '#115E59',
-        }}
-        aria-hidden="true"
-      >
-        {getInitials(name)}
-      </span>
-
-      <span className="text-sm font-medium text-slate-700">
-        {name || 'Unassigned'}
-      </span>
-    </span>
-  );
 }
 
 function timeAgo(timestamp, now) {
@@ -221,16 +202,20 @@ function timeAgo(timestamp, now) {
   );
 
   if (minutes < 1) return 'Updated just now';
-  if (minutes < 60) return `Updated ${minutes} min ago`;
+
+  if (minutes < 60) {
+    return `Updated ${minutes} min ago`;
+  }
 
   const hours = Math.floor(minutes / 60);
 
-  if (hours < 24) return `Updated ${hours} h ago`;
+  if (hours < 24) {
+    return `Updated ${hours} h ago`;
+  }
 
   return `Updated ${Math.floor(hours / 24)} d ago`;
 }
 
-// M10: Build Markdown briefing
 function createContextBriefing(task) {
   return [
     `# ${task.title || 'Untitled task'}`,
@@ -243,12 +228,18 @@ function createContextBriefing(task) {
   ].join('\n');
 }
 
-// Persistent storage for tasks and anchors
+// ==========================================
+// LOCAL STORAGE
+// ==========================================
+
 export function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
     try {
       const raw = window.localStorage.getItem(key);
-      return raw !== null ? JSON.parse(raw) : initialValue;
+
+      return raw !== null
+        ? JSON.parse(raw)
+        : initialValue;
     } catch {
       return initialValue;
     }
@@ -256,7 +247,10 @@ export function useLocalStorage(key, initialValue) {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(key, JSON.stringify(value));
+      window.localStorage.setItem(
+        key,
+        JSON.stringify(value)
+      );
     } catch {
       console.error("Changes couldn't be saved.");
     }
@@ -264,6 +258,10 @@ export function useLocalStorage(key, initialValue) {
 
   return [value, setValue];
 }
+
+// ==========================================
+// SAMPLE TASKS
+// ==========================================
 
 const initialTasks = [
   {
@@ -324,7 +322,70 @@ function emptyTask() {
   };
 }
 
-// M11: Deliverable card component
+// ==========================================
+// REUSABLE COMPONENTS
+// ==========================================
+
+function TaskTypeBadge({ type }) {
+  const style =
+    TASK_STYLES[type] || TASK_STYLES.feature;
+
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
+      style={{
+        color: style.color,
+        backgroundColor: style.background,
+      }}
+    >
+      <span aria-hidden="true">{style.icon}</span>
+      {style.label}
+    </span>
+  );
+}
+
+function DueBadge({ task, today }) {
+  const due = getDueState(task, today);
+  const style = DUE_STYLES[due.state];
+
+  return (
+    <span
+      className="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
+      style={{
+        color: style.color,
+        backgroundColor: style.background,
+      }}
+    >
+      {due.label}
+    </span>
+  );
+}
+
+function OwnerBadge({ name }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+        style={{
+          backgroundColor: '#CCFBF1',
+          color: '#115E59',
+        }}
+        aria-hidden="true"
+      >
+        {getInitials(name)}
+      </span>
+
+      <span className="text-sm font-medium text-slate-700">
+        {name || 'Unassigned'}
+      </span>
+    </span>
+  );
+}
+
+// ==========================================
+// M11: DELIVERABLE ANCHOR CARDS
+// ==========================================
+
 function DeliverableCard({ item, value, onChange }) {
   const text = value || '';
   const filled = isValidUrl(text.trim());
@@ -343,10 +404,14 @@ function DeliverableCard({ item, value, onChange }) {
         <span
           className="h-3 w-3 rounded-full"
           style={{
-            backgroundColor: filled ? '#16A34A' : '#CBD5E1',
+            backgroundColor: filled
+              ? '#16A34A'
+              : '#CBD5E1',
           }}
-          aria-label={filled ? 'Link added' : 'No valid link'}
           title={filled ? 'Link added' : 'No valid link'}
+          aria-label={
+            filled ? 'Link added' : 'No valid link'
+          }
         />
       </div>
 
@@ -361,7 +426,9 @@ function DeliverableCard({ item, value, onChange }) {
         id={`anchor-${item.id}`}
         type="url"
         value={text}
-        onChange={(event) => onChange(item.id, event.target.value)}
+        onChange={(event) =>
+          onChange(item.id, event.target.value)
+        }
         placeholder="https://example.com/..."
         aria-invalid={invalid}
         className="w-full rounded-lg border border-slate-300 bg-slate-50 p-2 text-sm focus:outline-2 focus:outline-teal-700"
@@ -397,47 +464,355 @@ function DeliverableCard({ item, value, onChange }) {
   );
 }
 
+// ==========================================
+// M12: SMART PROJECT INSIGHTS
+// ==========================================
+
+function ProjectInsights({ tasks, today }) {
+  const [expanded, setExpanded] = useState(true);
+
+  const total = tasks.length;
+
+  const completed = tasks.filter(
+    (task) => task.status === 'done'
+  ).length;
+
+  const active = total - completed;
+
+  const overdueTasks = tasks.filter(
+    (task) =>
+      getDueState(task, today).state === 'overdue'
+  );
+
+  const upcomingTasks = tasks.filter((task) => {
+    const due = getDueState(task, today);
+
+    return due.state === 'warning';
+  });
+
+  const completionRate = total
+    ? Math.round((completed / total) * 100)
+    : 0;
+
+  const workload = TEAM.map((member) => ({
+    name: member,
+    count: tasks.filter(
+      (task) =>
+        task.assignee === member &&
+        task.status !== 'done'
+    ).length,
+  }));
+
+  const maxWorkload = Math.max(
+    1,
+    ...workload.map((member) => member.count)
+  );
+
+  const sortedWorkload = [...workload].sort(
+    (a, b) => a.count - b.count
+  );
+
+  const leastBusy = sortedWorkload[0];
+  const busiest =
+    sortedWorkload[sortedWorkload.length - 1];
+
+  const showSuggestion =
+    leastBusy &&
+    busiest &&
+    busiest.count - leastBusy.count >= 2;
+
+  return (
+    <section className="mb-8 overflow-hidden rounded-2xl border border-teal-200 bg-white shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-teal-50 p-5">
+        <div>
+          <h2 className="text-xl font-bold text-teal-900">
+            ✦ Smart Project Insights
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-600">
+            Live project progress, deadlines and team workload
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          className="rounded-lg border border-teal-300 bg-white px-4 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-100"
+        >
+          {expanded ? 'Hide insights ▲' : 'Show insights ▼'}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="space-y-6 p-5">
+          {/* Project Statistics */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+            {[
+              {
+                label: 'Total Tasks',
+                value: total,
+                color: '#0F172A',
+              },
+              {
+                label: 'Active Tasks',
+                value: active,
+                color: '#1D4ED8',
+              },
+              {
+                label: 'Completed',
+                value: completed,
+                color: '#0F766E',
+              },
+              {
+                label: 'Overdue',
+                value: overdueTasks.length,
+                color: '#BE123C',
+              },
+              {
+                label: 'Completion',
+                value: `${completionRate}%`,
+                color: '#0F766E',
+              },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+              >
+                <p className="text-sm text-slate-500">
+                  {stat.label}
+                </p>
+
+                <p
+                  className="mt-2 text-3xl font-bold"
+                  style={{ color: stat.color }}
+                >
+                  {stat.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Progress Bar */}
+          <div>
+            <div className="mb-2 flex justify-between gap-3">
+              <h3 className="font-semibold text-slate-900">
+                Overall Project Progress
+              </h3>
+
+              <span className="font-semibold text-teal-800">
+                {completionRate}%
+              </span>
+            </div>
+
+            <div
+              className="h-4 overflow-hidden rounded-full bg-slate-200"
+              role="progressbar"
+              aria-valuenow={completionRate}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Project completion"
+            >
+              <div
+                className="h-full rounded-full bg-teal-700 transition-all"
+                style={{
+                  width: `${completionRate}%`,
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            {/* Team Workload */}
+            <div className="rounded-xl border border-slate-200 p-4">
+              <h3 className="mb-4 font-bold text-slate-900">
+                👥 Team Workload
+              </h3>
+
+              <div className="space-y-4">
+                {workload.map((member) => (
+                  <div key={member.name}>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <OwnerBadge name={member.name} />
+
+                      <span className="text-sm font-semibold text-slate-600">
+                        {member.count} active
+                      </span>
+                    </div>
+
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-teal-600"
+                        style={{
+                          width: `${
+                            (member.count / maxWorkload) * 100
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Deadline Intelligence */}
+            <div className="rounded-xl border border-slate-200 p-4">
+              <h3 className="mb-4 font-bold text-slate-900">
+                ⚡ Deadline Intelligence
+              </h3>
+
+              <div className="space-y-3">
+                <div className="rounded-lg bg-red-50 p-3">
+                  <p className="font-semibold text-red-800">
+                    {overdueTasks.length} overdue task(s)
+                  </p>
+
+                  <p className="mt-1 text-sm text-red-700">
+                    {overdueTasks.length
+                      ? overdueTasks.map(
+                          (task) => task.title
+                        ).join(', ')
+                      : 'No overdue tasks. Great progress!'}
+                  </p>
+                </div>
+
+                <div className="rounded-lg bg-amber-50 p-3">
+                  <p className="font-semibold text-amber-900">
+                    {upcomingTasks.length} urgent deadline(s)
+                  </p>
+
+                  <p className="mt-1 text-sm text-amber-800">
+                    {upcomingTasks.length
+                      ? upcomingTasks.map(
+                          (task) => task.title
+                        ).join(', ')
+                      : 'Nothing due today or tomorrow.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Smart Recommendations */}
+          <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
+            <h3 className="mb-3 font-bold text-teal-900">
+              💡 Smart Recommendations
+            </h3>
+
+            <div className="space-y-2 text-sm text-teal-900">
+              {overdueTasks.length > 0 && (
+                <p>
+                  • Prioritise {overdueTasks.length} overdue
+                  task(s) before starting new work.
+                </p>
+              )}
+
+              {upcomingTasks.length > 0 && (
+                <p>
+                  • Review tasks due today or tomorrow to
+                  avoid missing deadlines.
+                </p>
+              )}
+
+              {showSuggestion && (
+                <p>
+                  • Consider handing off an active task
+                  from {busiest.name} to {leastBusy.name}
+                  to balance the workload.
+                </p>
+              )}
+
+              {!overdueTasks.length &&
+                !upcomingTasks.length &&
+                !showSuggestion && (
+                  <p>
+                    ✓ Your project currently has no urgent
+                    deadline or workload warnings.
+                  </p>
+                )}
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Insights are calculated automatically from
+            your saved tasks. Recommendations are based
+            on simple rules, not an external AI service.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ==========================================
+// MAIN APPLICATION
+// ==========================================
+
 export default function App() {
   const [tasks, setTasks] = useLocalStorage(
     'vibetracker.tasks',
     initialTasks
   );
 
-  // M11: Anchors saved separately from tasks
   const [anchors, setAnchors] = useLocalStorage(
     'vibetracker.anchors',
     INITIAL_ANCHORS
   );
 
+  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyTask);
+
+  // Notifications
   const [handoffNotice, setHandoffNotice] = useState('');
   const [copyNotice, setCopyNotice] = useState('');
+  const [moveNotice, setMoveNotice] = useState('');
 
+  // M12: Drag and drop state
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [dragOverStage, setDragOverStage] = useState(null);
+
+  // Date and time
   const [now, setNow] = useState(() => Date.now());
   const today = localDate(new Date(now));
 
   const modalCloseRef = useRef(null);
   const previousFocusRef = useRef(null);
+  const dragTaskRef = useRef(null);
 
-  // Refresh deadlines and relative timestamps
+  // ========================================
+  // TIME UPDATES
+  // ========================================
+
   useEffect(() => {
     const refresh = () => setNow(Date.now());
 
-    const timer = window.setInterval(refresh, 60000);
+    const timer = window.setInterval(
+      refresh,
+      60000
+    );
 
     window.addEventListener('focus', refresh);
-    document.addEventListener('visibilitychange', refresh);
+    document.addEventListener(
+      'visibilitychange',
+      refresh
+    );
 
     return () => {
       window.clearInterval(timer);
       window.removeEventListener('focus', refresh);
-      document.removeEventListener('visibilitychange', refresh);
+      document.removeEventListener(
+        'visibilitychange',
+        refresh
+      );
     };
   }, []);
 
-  // Keep keyboard focus inside the modal
+  // ========================================
+  // MODAL ACCESSIBILITY
+  // ========================================
+
   useEffect(() => {
     if (!modalOpen) return;
 
@@ -450,7 +825,10 @@ export default function App() {
 
       if (event.key !== 'Tab') return;
 
-      const dialog = document.querySelector('[role="dialog"]');
+      const dialog = document.querySelector(
+        '[role="dialog"]'
+      );
+
       if (!dialog) return;
 
       const focusable = Array.from(
@@ -479,15 +857,25 @@ export default function App() {
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener(
+      'keydown',
+      handleKeyDown
+    );
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener(
+        'keydown',
+        handleKeyDown
+      );
+
       previousFocusRef.current?.focus();
     };
   }, [modalOpen]);
 
-  // M11: Save changes as links are entered
+  // ========================================
+  // M11: DELIVERABLE LINKS
+  // ========================================
+
   function updateAnchor(id, value) {
     setAnchors((previous) => ({
       ...previous,
@@ -495,11 +883,17 @@ export default function App() {
     }));
   }
 
+  // ========================================
+  // M5: CREATE AND EDIT TASKS
+  // ========================================
+
   function addTask() {
     previousFocusRef.current = document.activeElement;
+
     setForm(emptyTask());
     setEditing(false);
     setModalOpen(true);
+
     setHandoffNotice('');
     setCopyNotice('');
   }
@@ -512,11 +906,13 @@ export default function App() {
       dueDate: task.dueDate || '',
       context: task.context ?? '',
       contextTool: task.contextTool ?? '',
-      contextUpdatedAt: task.contextUpdatedAt ?? null,
+      contextUpdatedAt:
+        task.contextUpdatedAt ?? null,
     });
 
     setEditing(true);
     setModalOpen(true);
+
     setHandoffNotice('');
     setCopyNotice('');
   }
@@ -530,12 +926,22 @@ export default function App() {
     }));
   }
 
+  // ========================================
+  // M7: TASK HANDOFF
+  // ========================================
+
   function handOffTask(event) {
+    const newOwner = event.target.value;
+
     setForm((previous) => ({
       ...previous,
-      assignee: event.target.value,
+      assignee: newOwner,
     }));
   }
+
+  // ========================================
+  // M9: AI CONTEXT
+  // ========================================
 
   function updateContext(event) {
     const value = event.target.value;
@@ -550,7 +956,10 @@ export default function App() {
     setNow(Date.now());
   }
 
-  // M10: Copy task briefing
+  // ========================================
+  // M10: COPY CONTEXT
+  // ========================================
+
   async function handleCopyContext(task) {
     const briefing = createContextBriefing(task);
 
@@ -560,13 +969,20 @@ export default function App() {
       }
 
       await navigator.clipboard.writeText(briefing);
-      setCopyNotice('Context copied. Ready to paste.');
+
+      setCopyNotice(
+        'Context copied. Ready to paste.'
+      );
     } catch {
       setCopyNotice(
         "Couldn't copy. Select and copy the text manually."
       );
     }
   }
+
+  // ========================================
+  // SAVE TASK
+  // ========================================
 
   function saveTask(event) {
     event.preventDefault();
@@ -582,7 +998,9 @@ export default function App() {
 
     const savedTask = {
       ...form,
-      id: editing ? form.id : crypto.randomUUID(),
+      id: editing
+        ? form.id
+        : crypto.randomUUID(),
       title: form.title.trim(),
       dueDate: form.dueDate || null,
     };
@@ -590,7 +1008,9 @@ export default function App() {
     if (editing) {
       setTasks((previous) =>
         previous.map((task) =>
-          task.id === savedTask.id ? savedTask : task
+          task.id === savedTask.id
+            ? savedTask
+            : task
         )
       );
     } else {
@@ -600,7 +1020,10 @@ export default function App() {
       ]);
     }
 
-    if (oldTask && oldTask.assignee !== savedTask.assignee) {
+    if (
+      oldTask &&
+      oldTask.assignee !== savedTask.assignee
+    ) {
       setHandoffNotice(
         `Task handed off to ${savedTask.assignee}.`
       );
@@ -611,6 +1034,10 @@ export default function App() {
     setModalOpen(false);
   }
 
+  // ========================================
+  // DELETE TASK
+  // ========================================
+
   function deleteTask() {
     if (!editing) return;
 
@@ -620,13 +1047,85 @@ export default function App() {
       )
     ) {
       setTasks((previous) =>
-        previous.filter((task) => task.id !== form.id)
+        previous.filter(
+          (task) => task.id !== form.id
+        )
       );
 
       setModalOpen(false);
       setHandoffNotice('');
     }
   }
+
+  // ========================================
+  // M12: DRAG AND DROP KANBAN
+  // ========================================
+
+  function handleDragStart(event, task) {
+    dragTaskRef.current = task.id;
+    setDraggedTaskId(task.id);
+    setDragOverStage(null);
+
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData(
+      'text/plain',
+      task.id
+    );
+  }
+
+  function handleDragOver(event, stageId) {
+    event.preventDefault();
+
+    event.dataTransfer.dropEffect = 'move';
+
+    if (dragOverStage !== stageId) {
+      setDragOverStage(stageId);
+    }
+  }
+
+  function handleDrop(event, stageId) {
+    event.preventDefault();
+
+    const taskId =
+      event.dataTransfer.getData('text/plain') ||
+      dragTaskRef.current;
+
+    const task = tasks.find(
+      (item) => item.id === taskId
+    );
+
+    if (task && task.status !== stageId) {
+      setTasks((previous) =>
+        previous.map((item) =>
+          item.id === taskId
+            ? { ...item, status: stageId }
+            : item
+        )
+      );
+
+      const destination = STAGES.find(
+        (stage) => stage.id === stageId
+      );
+
+      setMoveNotice(
+        `"${task.title}" moved to ${destination.label}.`
+      );
+    }
+
+    dragTaskRef.current = null;
+    setDraggedTaskId(null);
+    setDragOverStage(null);
+  }
+
+  function handleDragEnd() {
+    dragTaskRef.current = null;
+    setDraggedTaskId(null);
+    setDragOverStage(null);
+  }
+
+  // ========================================
+  // APPLICATION INTERFACE
+  // ========================================
 
   return (
     <div
@@ -636,7 +1135,7 @@ export default function App() {
         color: '#0F172A',
       }}
     >
-      {/* Header */}
+      {/* HEADER */}
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">
@@ -652,13 +1151,15 @@ export default function App() {
           type="button"
           onClick={addTask}
           className="rounded-lg px-5 py-3 font-semibold text-white hover:opacity-90"
-          style={{ backgroundColor: '#0F766E' }}
+          style={{
+            backgroundColor: '#0F766E',
+          }}
         >
           + Add task
         </button>
       </header>
 
-      {/* Notifications */}
+      {/* NOTIFICATIONS */}
       {handoffNotice && (
         <div
           role="status"
@@ -678,15 +1179,34 @@ export default function App() {
           <button
             type="button"
             onClick={() => setCopyNotice('')}
-            aria-label="Dismiss message"
-            className="font-bold"
+            aria-label="Dismiss copy message"
           >
             ×
           </button>
         </div>
       )}
 
-      {/* M11: Deliverable Anchor Board */}
+      {moveNotice && (
+        <div
+          role="status"
+          className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900"
+        >
+          <span>✓ {moveNotice}</span>
+
+          <button
+            type="button"
+            onClick={() => setMoveNotice('')}
+            aria-label="Dismiss movement message"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* ====================================
+          M11: PROJECT DELIVERABLES
+      ==================================== */}
+
       <section
         aria-labelledby="deliverables-title"
         className="mb-8"
@@ -708,7 +1228,9 @@ export default function App() {
           <span className="rounded-full bg-teal-100 px-3 py-1 text-sm font-medium text-teal-800">
             {
               DELIVERABLES.filter((item) =>
-                isValidUrl((anchors?.[item.id] || '').trim())
+                isValidUrl(
+                  (anchors?.[item.id] || '').trim()
+                )
               ).length
             } / 4 linked
           </span>
@@ -726,18 +1248,62 @@ export default function App() {
         </div>
       </section>
 
-      {/* M4-M10: Kanban Board */}
+      {/* ====================================
+          M12: SMART PROJECT INSIGHTS
+      ==================================== */}
+
+      <ProjectInsights
+        tasks={tasks}
+        today={today}
+      />
+
+      {/* ====================================
+          M4-M12: KANBAN BOARD
+      ==================================== */}
+
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-slate-900">
+          Kanban Task Board
+        </h2>
+
+        <p className="mt-1 text-sm text-slate-500">
+          Drag and drop task cards between columns,
+          or click a card to edit its status.
+        </p>
+      </div>
+
       <main className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {STAGES.map((stage) => {
           const stageTasks = tasks.filter(
             (task) => task.status === stage.id
           );
 
+          const isDropTarget =
+            dragOverStage === stage.id;
+
           return (
             <section
               key={stage.id}
-              className="min-h-80 rounded-xl p-4"
-              style={{ backgroundColor: '#F1F5F9' }}
+              onDragOver={(event) =>
+                handleDragOver(event, stage.id)
+              }
+              onDragLeave={(event) => {
+                if (
+                  !event.currentTarget.contains(
+                    event.relatedTarget
+                  )
+                ) {
+                  setDragOverStage(null);
+                }
+              }}
+              onDrop={(event) =>
+                handleDrop(event, stage.id)
+              }
+              className={`min-h-80 rounded-xl border-2 p-4 transition-all ${
+                isDropTarget
+                  ? 'border-teal-600 bg-teal-100'
+                  : 'border-transparent bg-slate-100'
+              }`}
             >
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">
@@ -749,6 +1315,12 @@ export default function App() {
                 </span>
               </div>
 
+              {isDropTarget && (
+                <p className="mb-3 rounded-lg border border-dashed border-teal-600 bg-white p-3 text-center text-sm font-semibold text-teal-800">
+                  Drop task here
+                </p>
+              )}
+
               <div className="space-y-3">
                 {stageTasks.length === 0 && (
                   <p className="text-sm text-slate-500">
@@ -757,16 +1329,34 @@ export default function App() {
                 )}
 
                 {stageTasks.map((task) => {
-                  const due = getDueState(task, today);
-                  const dueStyle = DUE_STYLES[due.state];
+                  const due = getDueState(
+                    task,
+                    today
+                  );
+
+                  const dueStyle =
+                    DUE_STYLES[due.state];
+
+                  const isDragging =
+                    draggedTaskId === task.id;
 
                   return (
                     <article
                       key={task.id}
-                      className="overflow-hidden rounded-xl border bg-white shadow-sm"
+                      draggable
+                      onDragStart={(event) =>
+                        handleDragStart(event, task)
+                      }
+                      onDragEnd={handleDragEnd}
+                      className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-all ${
+                        isDragging
+                          ? 'opacity-40'
+                          : 'hover:shadow-md'
+                      }`}
                       style={{
                         borderColor: dueStyle.border,
                         borderLeftWidth: '5px',
+                        cursor: 'grab',
                       }}
                     >
                       <button
@@ -779,7 +1369,9 @@ export default function App() {
                             {task.title}
                           </h3>
 
-                          <TaskTypeBadge type={task.type} />
+                          <TaskTypeBadge
+                            type={task.type}
+                          />
                         </div>
 
                         <p className="text-sm text-slate-600">
@@ -787,7 +1379,10 @@ export default function App() {
                         </p>
 
                         <div className="mt-3">
-                          <DueBadge task={task} today={today} />
+                          <DueBadge
+                            task={task}
+                            today={today}
+                          />
                         </div>
 
                         {task.context && (
@@ -800,15 +1395,19 @@ export default function App() {
                         )}
 
                         <div className="mt-4 border-t border-slate-100 pt-3">
-                          <OwnerBadge name={task.assignee} />
+                          <OwnerBadge
+                            name={task.assignee}
+                          />
                         </div>
                       </button>
 
                       <div className="border-t border-slate-100 px-4 pb-4 pt-3">
                         <button
                           type="button"
-                          onClick={() => handleCopyContext(task)}
-                          className="w-full rounded-lg border border-teal-600 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100"
+                          onClick={() =>
+                            handleCopyContext(task)
+                          }
+                          className="w-full rounded-lg border border-teal-600 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800 hover:bg-teal-100"
                         >
                           ⧉ Copy Context
                         </button>
@@ -822,7 +1421,10 @@ export default function App() {
         })}
       </main>
 
-      {/* M5-M10: Create / Edit Task Modal */}
+      {/* ====================================
+          M5-M10: CREATE / EDIT MODAL
+      ==================================== */}
+
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
@@ -837,16 +1439,22 @@ export default function App() {
                   id="task-modal-title"
                   className="text-xl font-bold"
                 >
-                  {editing ? 'Edit task' : 'Create a task'}
+                  {editing
+                    ? 'Edit task'
+                    : 'Create a task'}
                 </h2>
 
-                <TaskTypeBadge type={form.type} />
+                <TaskTypeBadge
+                  type={form.type}
+                />
               </div>
 
               <button
                 ref={modalCloseRef}
                 type="button"
-                onClick={() => setModalOpen(false)}
+                onClick={() =>
+                  setModalOpen(false)
+                }
                 aria-label="Close task form"
                 className="text-2xl text-slate-500"
               >
@@ -854,7 +1462,11 @@ export default function App() {
               </button>
             </div>
 
-            <form onSubmit={saveTask} className="space-y-4">
+            <form
+              onSubmit={saveTask}
+              className="space-y-4"
+            >
+              {/* TASK TITLE */}
               <label className="block text-sm font-medium">
                 Task Title *
                 <input
@@ -867,6 +1479,7 @@ export default function App() {
                 />
               </label>
 
+              {/* DESCRIPTION */}
               <label className="block text-sm font-medium">
                 Description
                 <textarea
@@ -878,6 +1491,7 @@ export default function App() {
                 />
               </label>
 
+              {/* TASK TYPE */}
               <label className="block text-sm font-medium">
                 Task Type
                 <select
@@ -886,11 +1500,17 @@ export default function App() {
                   onChange={updateField}
                   className="mt-1 w-full rounded-lg border p-3"
                 >
-                  <option value="feature">Feature</option>
-                  <option value="bug">Bug</option>
+                  <option value="feature">
+                    Feature
+                  </option>
+
+                  <option value="bug">
+                    Bug
+                  </option>
                 </select>
               </label>
 
+              {/* STATUS */}
               <label className="block text-sm font-medium">
                 Status
                 <select
@@ -900,23 +1520,29 @@ export default function App() {
                   className="mt-1 w-full rounded-lg border p-3"
                 >
                   {STAGES.map((stage) => (
-                    <option key={stage.id} value={stage.id}>
+                    <option
+                      key={stage.id}
+                      value={stage.id}
+                    >
                       {stage.label}
                     </option>
                   ))}
                 </select>
               </label>
 
-              {/* M7: Task owner / handoff */}
+              {/* TASK OWNER */}
               <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
                 <p className="mb-3 text-sm font-semibold text-teal-900">
                   Task Owner
                 </p>
 
-                <OwnerBadge name={form.assignee} />
+                <OwnerBadge
+                  name={form.assignee}
+                />
 
                 <label className="mt-4 block text-sm font-medium">
                   Hand off to...
+
                   <select
                     name="assignee"
                     value={form.assignee}
@@ -924,7 +1550,10 @@ export default function App() {
                     className="mt-2 w-full rounded-lg border bg-white p-3"
                   >
                     {TEAM.map((member) => (
-                      <option key={member} value={member}>
+                      <option
+                        key={member}
+                        value={member}
+                      >
                         {member}
                       </option>
                     ))}
@@ -936,6 +1565,7 @@ export default function App() {
                 </p>
               </div>
 
+              {/* DUE DATE */}
               <label className="block text-sm font-medium">
                 Due Date
                 <input
@@ -947,6 +1577,7 @@ export default function App() {
                 />
               </label>
 
+              {/* CREATED DATE */}
               <label className="block text-sm font-medium">
                 Created Date
                 <input
@@ -958,16 +1589,19 @@ export default function App() {
                 />
               </label>
 
-              {/* M8: Deadline preview */}
+              {/* DEADLINE PREVIEW */}
               <div className="rounded-lg border border-slate-200 p-3">
                 <p className="mb-2 text-sm font-medium">
                   Deadline status
                 </p>
 
-                <DueBadge task={form} today={today} />
+                <DueBadge
+                  task={form}
+                  today={today}
+                />
               </div>
 
-              {/* M9: AI Context */}
+              {/* AI CONTEXT */}
               <section className="rounded-xl border-2 border-teal-200 bg-teal-50/50 p-4">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-lg font-bold text-teal-900">
@@ -975,7 +1609,10 @@ export default function App() {
                   </h3>
 
                   <span className="text-xs text-slate-500">
-                    {timeAgo(form.contextUpdatedAt, now)}
+                    {timeAgo(
+                      form.contextUpdatedAt,
+                      now
+                    )}
                   </span>
                 </div>
 
@@ -985,6 +1622,7 @@ export default function App() {
 
                 <label className="block text-sm font-medium">
                   Context briefing (Markdown)
+
                   <textarea
                     name="context"
                     value={form.context}
@@ -997,16 +1635,22 @@ export default function App() {
 
                 <label className="mt-4 block text-sm font-medium">
                   AI tool used (optional)
+
                   <select
                     name="contextTool"
                     value={form.contextTool}
                     onChange={updateField}
                     className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"
                   >
-                    <option value="">Select an AI tool</option>
+                    <option value="">
+                      Select an AI tool
+                    </option>
 
                     {AI_TOOLS.map((tool) => (
-                      <option key={tool} value={tool}>
+                      <option
+                        key={tool}
+                        value={tool}
+                      >
                         {tool}
                       </option>
                     ))}
@@ -1022,16 +1666,18 @@ export default function App() {
                   </p>
                 )}
 
-                {/* M10: Copy inside modal */}
                 <button
                   type="button"
-                  onClick={() => handleCopyContext(form)}
+                  onClick={() =>
+                    handleCopyContext(form)
+                  }
                   className="mt-4 w-full rounded-lg border border-teal-600 bg-white px-4 py-3 font-semibold text-teal-800 hover:bg-teal-100"
                 >
                   ⧉ Copy Context
                 </button>
               </section>
 
+              {/* COPY FEEDBACK */}
               {copyNotice && (
                 <p
                   role="status"
@@ -1041,13 +1687,13 @@ export default function App() {
                 </p>
               )}
 
-              {/* Actions */}
+              {/* MODAL ACTIONS */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 {editing ? (
                   <button
                     type="button"
                     onClick={deleteTask}
-                    className="rounded-lg bg-red-600 px-4 py-2 text-white"
+                    className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
                   >
                     Delete task
                   </button>
@@ -1058,7 +1704,9 @@ export default function App() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setModalOpen(false)}
+                    onClick={() =>
+                      setModalOpen(false)
+                    }
                     className="rounded-lg border px-4 py-2"
                   >
                     Cancel
@@ -1066,8 +1714,10 @@ export default function App() {
 
                   <button
                     type="submit"
-                    className="rounded-lg px-4 py-2 text-white"
-                    style={{ backgroundColor: '#0F766E' }}
+                    className="rounded-lg px-4 py-2 text-white hover:opacity-90"
+                    style={{
+                      backgroundColor: '#0F766E',
+                    }}
                   >
                     Save task
                   </button>
