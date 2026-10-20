@@ -9,14 +9,14 @@ export const STAGES = [
   { id: 'done', label: 'Done' },
 ];
 
-// Replace with actual names from PRD section 8
+// Replace with your actual PRD team names
 export const TEAM = [
   'Teammate A',
   'Teammate B',
   'Teammate C',
 ];
 
-// M6: Official task colours from DESIGN.md
+// M6: Task type styles
 const TASK_STYLES = {
   feature: {
     label: 'Feature',
@@ -32,7 +32,85 @@ const TASK_STYLES = {
   },
 };
 
-// M6: Reusable task-type badge
+// M8: Deadline colours from DESIGN.md
+const DUE_STYLES = {
+  calm: {
+    color: '#334155',
+    background: '#F1F5F9',
+    border: '#334155',
+  },
+  warning: {
+    color: '#92400E',
+    background: '#FEF3C7',
+    border: '#D97706',
+  },
+  overdue: {
+    color: '#991B1B',
+    background: '#FEE2E2',
+    border: '#DC2626',
+  },
+  neutral: {
+    color: '#475569',
+    background: '#E2E8F0',
+    border: '#CBD5E1',
+  },
+};
+
+// Local date formatted as YYYY-MM-DD
+function localDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
+// M8: Calculate deadline status
+function getDueState(task, today) {
+  if (task.status === 'done') {
+    return {
+      state: 'neutral',
+      label: 'Completed',
+    };
+  }
+
+  if (!task.dueDate) {
+    return {
+      state: 'neutral',
+      label: 'No due date',
+    };
+  }
+
+  if (task.dueDate < today) {
+    return {
+      state: 'overdue',
+      label: `Overdue · ${task.dueDate}`,
+    };
+  }
+
+  if (task.dueDate === today) {
+    return {
+      state: 'warning',
+      label: 'Due today',
+    };
+  }
+
+  const tomorrow = new Date(`${today}T12:00:00`);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  if (task.dueDate === localDate(tomorrow)) {
+    return {
+      state: 'warning',
+      label: 'Due tomorrow',
+    };
+  }
+
+  return {
+    state: 'calm',
+    label: `Due ${task.dueDate}`,
+  };
+}
+
 function TaskTypeBadge({ type }) {
   const style = TASK_STYLES[type] || TASK_STYLES.feature;
 
@@ -50,7 +128,58 @@ function TaskTypeBadge({ type }) {
   );
 }
 
-// Persistent browser storage
+// M8: Deadline badge
+function DueBadge({ task, today }) {
+  const due = getDueState(task, today);
+  const style = DUE_STYLES[due.state];
+
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
+      style={{
+        color: style.color,
+        backgroundColor: style.background,
+      }}
+    >
+      {due.label}
+    </span>
+  );
+}
+
+// M7: Owner initials
+function getInitials(name) {
+  if (!name) return '?';
+
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function OwnerBadge({ name }) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+        style={{
+          backgroundColor: '#CCFBF1',
+          color: '#115E59',
+        }}
+      >
+        {getInitials(name)}
+      </span>
+
+      <span className="text-sm font-medium text-slate-700">
+        {name || 'Unassigned'}
+      </span>
+    </span>
+  );
+}
+
+// Browser storage
 export function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
     try {
@@ -65,14 +194,14 @@ export function useLocalStorage(key, initialValue) {
     try {
       window.localStorage.setItem(key, JSON.stringify(value));
     } catch {
-      console.error('Unable to save data');
+      console.error("Changes couldn't be saved.");
     }
   }, [key, value]);
 
   return [value, setValue];
 }
 
-// M4: Initial sample tasks
+// M4: Initial tasks
 const initialTasks = [
   {
     id: 'task-1',
@@ -116,7 +245,6 @@ const initialTasks = [
   },
 ];
 
-// Blank task form
 function emptyTask() {
   return {
     id: '',
@@ -126,7 +254,7 @@ function emptyTask() {
     status: 'todo',
     assignee: TEAM[0],
     dueDate: '',
-    createdDate: new Date().toLocaleDateString('en-CA'),
+    createdDate: localDate(),
   };
 }
 
@@ -136,29 +264,47 @@ export default function App() {
     initialTasks
   );
 
-  // M5: Modal states
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyTask);
+  const [handoffNotice, setHandoffNotice] = useState('');
 
-  // Create task
+  // M8: Update deadline colours automatically
+  const [today, setToday] = useState(() => localDate());
+
+  useEffect(() => {
+    const updateToday = () => setToday(localDate());
+
+    const timer = window.setInterval(updateToday, 60000);
+
+    window.addEventListener('focus', updateToday);
+    document.addEventListener('visibilitychange', updateToday);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', updateToday);
+      document.removeEventListener('visibilitychange', updateToday);
+    };
+  }, []);
+
   function addTask() {
     setForm(emptyTask());
     setEditing(false);
     setModalOpen(true);
+    setHandoffNotice('');
   }
 
-  // Edit existing task
   function editTask(task) {
     setForm({
       ...task,
       dueDate: task.dueDate || '',
     });
+
     setEditing(true);
     setModalOpen(true);
+    setHandoffNotice('');
   }
 
-  // Update form
   function updateField(event) {
     const { name, value } = event.target;
 
@@ -168,7 +314,13 @@ export default function App() {
     }));
   }
 
-  // Save task
+  function handOffTask(event) {
+    setForm((previous) => ({
+      ...previous,
+      assignee: event.target.value,
+    }));
+  }
+
   function saveTask(event) {
     event.preventDefault();
 
@@ -176,6 +328,10 @@ export default function App() {
       alert('Enter a task title.');
       return;
     }
+
+    const oldTask = editing
+      ? tasks.find((task) => task.id === form.id)
+      : null;
 
     const savedTask = {
       ...form,
@@ -194,23 +350,27 @@ export default function App() {
       setTasks((previous) => [...previous, savedTask]);
     }
 
+    if (oldTask && oldTask.assignee !== savedTask.assignee) {
+      setHandoffNotice(
+        `Task handed off to ${savedTask.assignee}.`
+      );
+    } else {
+      setHandoffNotice('');
+    }
+
     setModalOpen(false);
   }
 
-  // Delete task
   function deleteTask() {
     if (!editing) return;
 
-    if (
-      window.confirm(
-        'Delete this task? This cannot be undone.'
-      )
-    ) {
+    if (window.confirm('Delete this task? This cannot be undone.')) {
       setTasks((previous) =>
         previous.filter((task) => task.id !== form.id)
       );
 
       setModalOpen(false);
+      setHandoffNotice('');
     }
   }
 
@@ -222,7 +382,6 @@ export default function App() {
         color: '#0F172A',
       }}
     >
-      {/* Header */}
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">
@@ -243,9 +402,25 @@ export default function App() {
         </button>
       </header>
 
+      {handoffNotice && (
+        <div
+          role="status"
+          className="mb-5 flex items-center justify-between rounded-lg border border-teal-300 bg-teal-50 p-4 text-teal-900"
+        >
+          <span>✓ {handoffNotice}</span>
+
+          <button
+            onClick={() => setHandoffNotice('')}
+            aria-label="Dismiss confirmation"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* M11: Anchor Board goes here */}
 
-      {/* M4 + M6: Kanban Board */}
+      {/* M4-M8: Kanban board */}
       <main className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {STAGES.map((stage) => {
           const stageTasks = tasks.filter(
@@ -275,44 +450,58 @@ export default function App() {
                   </p>
                 )}
 
-                {stageTasks.map((task) => (
-                  <button
-                    key={task.id}
-                    onClick={() => editTask(task)}
-                    className="block w-full rounded-xl border bg-white p-4 text-left shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
-                    style={{ borderColor: '#CBD5E1' }}
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-2">
-                      <h3 className="text-base font-semibold">
-                        {task.title}
-                      </h3>
+                {stageTasks.map((task) => {
+                  const due = getDueState(task, today);
+                  const dueStyle = DUE_STYLES[due.state];
 
-                      <TaskTypeBadge type={task.type} />
-                    </div>
+                  return (
+                    <button
+                      key={task.id}
+                      onClick={() => editTask(task)}
+                      className="block w-full rounded-xl border bg-white p-4 text-left shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+                      style={{
+                        borderColor: dueStyle.border,
+                        borderLeftWidth: '5px',
+                      }}
+                    >
+                      <div className="mb-3 flex items-start justify-between gap-2">
+                        <h3 className="text-base font-semibold">
+                          {task.title}
+                        </h3>
 
-                    <p className="text-sm text-slate-600">
-                      {task.description}
-                    </p>
+                        <TaskTypeBadge type={task.type} />
+                      </div>
 
-                    <p className="mt-4 text-sm text-slate-600">
-                      Assigned to: {task.assignee}
-                    </p>
-                  </button>
-                ))}
+                      <p className="text-sm text-slate-600">
+                        {task.description}
+                      </p>
+
+                      {/* M8: Deadline badge */}
+                      <div className="mt-3">
+                        <DueBadge task={task} today={today} />
+                      </div>
+
+                      {/* M7: Task owner */}
+                      <div className="mt-4 border-t border-slate-100 pt-3">
+                        <OwnerBadge name={task.assignee} />
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           );
         })}
       </main>
 
-      {/* M5 + M6: Task Modal */}
+      {/* Create/Edit Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="task-modal-title"
-            className="my-auto w-full max-w-lg rounded-xl bg-white p-6 shadow-xl"
+            className="my-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
           >
             <div className="mb-5 flex items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3">
@@ -330,7 +519,7 @@ export default function App() {
                 type="button"
                 onClick={() => setModalOpen(false)}
                 aria-label="Close task form"
-                className="text-2xl text-slate-500 hover:text-red-600"
+                className="text-2xl text-slate-500"
               >
                 ×
               </button>
@@ -357,7 +546,6 @@ export default function App() {
                   onChange={updateField}
                   rows={3}
                   className="mt-1 w-full rounded-lg border p-3"
-                  placeholder="Describe the task"
                 />
               </label>
 
@@ -390,21 +578,34 @@ export default function App() {
                 </select>
               </label>
 
-              <label className="block text-sm font-medium">
-                Assigned To
-                <select
-                  name="assignee"
-                  value={form.assignee}
-                  onChange={updateField}
-                  className="mt-1 w-full rounded-lg border p-3"
-                >
-                  {TEAM.map((member) => (
-                    <option key={member} value={member}>
-                      {member}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {/* M7: Handoff */}
+              <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
+                <p className="mb-3 text-sm font-semibold text-teal-900">
+                  Task Owner
+                </p>
+
+                <OwnerBadge name={form.assignee} />
+
+                <label className="mt-4 block text-sm font-medium">
+                  Hand off to...
+                  <select
+                    name="assignee"
+                    value={form.assignee}
+                    onChange={handOffTask}
+                    className="mt-2 w-full rounded-lg border bg-white p-3"
+                  >
+                    {TEAM.map((member) => (
+                      <option key={member} value={member}>
+                        {member}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <p className="mt-2 text-xs text-slate-600">
+                  Save the task to confirm the handoff.
+                </p>
+              </div>
 
               <label className="block text-sm font-medium">
                 Due Date
@@ -428,12 +629,20 @@ export default function App() {
                 />
               </label>
 
+              {/* M8: Live deadline preview */}
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="mb-2 text-sm font-medium">
+                  Deadline status
+                </p>
+                <DueBadge task={form} today={today} />
+              </div>
+
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 {editing ? (
                   <button
                     type="button"
                     onClick={deleteTask}
-                    className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                    className="rounded-lg bg-red-600 px-4 py-2 text-white"
                   >
                     Delete task
                   </button>
@@ -452,7 +661,7 @@ export default function App() {
 
                   <button
                     type="submit"
-                    className="rounded-lg px-4 py-2 text-white hover:opacity-90"
+                    className="rounded-lg px-4 py-2 text-white"
                     style={{ backgroundColor: '#0F766E' }}
                   >
                     Save task
