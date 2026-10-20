@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 // M4: Kanban stages
 export const STAGES = [
@@ -9,14 +9,14 @@ export const STAGES = [
   { id: 'done', label: 'Done' },
 ];
 
-// Replace with actual team names from PRD section 8
+// Replace with real names from PRD section 8
 export const TEAM = [
   'Teammate A',
   'Teammate B',
   'Teammate C',
 ];
 
-// M6: Task colours
+// M6: Feature and Bug styles from DESIGN.md
 const TASK_STYLES = {
   feature: {
     label: 'Feature',
@@ -32,7 +32,7 @@ const TASK_STYLES = {
   },
 };
 
-// M8: Deadline colours
+// M8: Deadline styles
 const DUE_STYLES = {
   calm: {
     color: '#334155',
@@ -56,7 +56,6 @@ const DUE_STYLES = {
   },
 };
 
-// M9: AI tools
 const AI_TOOLS = [
   'Claude',
   'ChatGPT',
@@ -66,7 +65,6 @@ const AI_TOOLS = [
   'Other',
 ];
 
-// M9: Starting context for new tasks
 const CONTEXT_TEMPLATE = `## Background
 
 ## Constraints
@@ -76,6 +74,7 @@ const CONTEXT_TEMPLATE = `## Background
 ## Pick up
 `;
 
+// Dates in local time
 function localDate(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -84,7 +83,7 @@ function localDate(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-// M8: Calculate deadline status
+// M8: Deadline calculation
 function getDueState(task, today) {
   if (task.status === 'done') {
     return { state: 'neutral', label: 'Completed' };
@@ -118,13 +117,12 @@ function getDueState(task, today) {
   };
 }
 
-// M6: Feature / Bug badge
 function TaskTypeBadge({ type }) {
   const style = TASK_STYLES[type] || TASK_STYLES.feature;
 
   return (
     <span
-      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
+      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
       style={{
         color: style.color,
         backgroundColor: style.background,
@@ -136,7 +134,6 @@ function TaskTypeBadge({ type }) {
   );
 }
 
-// M8: Due date badge
 function DueBadge({ task, today }) {
   const due = getDueState(task, today);
   const style = DUE_STYLES[due.state];
@@ -154,7 +151,7 @@ function DueBadge({ task, today }) {
   );
 }
 
-// M7: Task owner avatar
+// M7: Task owner
 function getInitials(name) {
   if (!name) return '?';
 
@@ -188,12 +185,15 @@ function OwnerBadge({ name }) {
   );
 }
 
-// M9: Human-readable last-updated message
+// M9: Human-readable context timestamp
 function timeAgo(timestamp, now) {
   if (!timestamp) return 'Not updated yet';
 
   const updated = new Date(timestamp).getTime();
-  if (Number.isNaN(updated)) return 'Not updated yet';
+
+  if (Number.isNaN(updated)) {
+    return 'Not updated yet';
+  }
 
   const minutes = Math.max(
     0,
@@ -201,6 +201,7 @@ function timeAgo(timestamp, now) {
   );
 
   if (minutes < 1) return 'Updated just now';
+
   if (minutes < 60) {
     return `Updated ${minutes} min ago`;
   }
@@ -211,11 +212,36 @@ function timeAgo(timestamp, now) {
     return `Updated ${hours} h ago`;
   }
 
-  const days = Math.floor(hours / 24);
-  return `Updated ${days} d ago`;
+  return `Updated ${Math.floor(hours / 24)} d ago`;
 }
 
-// Browser storage
+// M10: Format a task as a Markdown briefing
+function createContextBriefing(task) {
+  const title = task.title || 'Untitled task';
+  const description = task.description || 'No description provided.';
+  const context = task.context?.trim() || 'No AI context recorded.';
+
+  return [
+    `# ${title}`,
+    '',
+    '## Description',
+    description,
+    '',
+    '## AI Context',
+    context,
+  ].join('\n');
+}
+
+// M10: Copy text to clipboard
+async function copyText(text) {
+  if (!navigator.clipboard?.writeText) {
+    throw new Error('Clipboard API unavailable');
+  }
+
+  await navigator.clipboard.writeText(text);
+}
+
+// Persistent localStorage
 export function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
     try {
@@ -240,7 +266,7 @@ export function useLocalStorage(key, initialValue) {
   return [value, setValue];
 }
 
-// M4: Seed tasks
+// M4: Starter tasks
 const initialTasks = [
   {
     id: 'task-1',
@@ -294,8 +320,6 @@ function emptyTask() {
     assignee: TEAM[0],
     dueDate: '',
     createdDate: localDate(),
-
-    // M9: New task context fields
     context: CONTEXT_TEMPLATE,
     contextTool: '',
     contextUpdatedAt: null,
@@ -311,44 +335,94 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyTask);
-  const [handoffNotice, setHandoffNotice] = useState('');
 
-  // M8/M9: Keep date and relative times current
+  const [handoffNotice, setHandoffNotice] = useState('');
+  const [copyNotice, setCopyNotice] = useState('');
+
   const [now, setNow] = useState(() => Date.now());
   const today = localDate(new Date(now));
+  const modalCloseRef = useRef(null);
+  const previousFocusRef = useRef(null);
 
+  // Refresh deadline and context timestamps
   useEffect(() => {
-    const refreshTime = () => setNow(Date.now());
+    const refresh = () => setNow(Date.now());
 
-    const timer = window.setInterval(
-      refreshTime,
-      60000
-    );
+    const timer = window.setInterval(refresh, 60000);
 
-    window.addEventListener('focus', refreshTime);
-    document.addEventListener(
-      'visibilitychange',
-      refreshTime
-    );
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
 
     return () => {
       window.clearInterval(timer);
-      window.removeEventListener('focus', refreshTime);
-      document.removeEventListener(
-        'visibilitychange',
-        refreshTime
-      );
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
     };
   }, []);
 
+  // Keep focus inside the modal while it is open
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    modalCloseRef.current?.focus();
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setModalOpen(false);
+      }
+
+      if (event.key === 'Tab') {
+        const dialog = document.querySelector(
+          '[role="dialog"]'
+        );
+
+        if (!dialog) return;
+
+        const focusable = Array.from(
+          dialog.querySelectorAll(
+            'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        );
+
+        if (!focusable.length) return;
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey &&
+            document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (
+          !event.shiftKey &&
+          document.activeElement === last
+        ) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previousFocusRef.current?.focus();
+    };
+  }, [modalOpen]);
+
   function addTask() {
+    previousFocusRef.current = document.activeElement;
     setForm(emptyTask());
     setEditing(false);
     setModalOpen(true);
     setHandoffNotice('');
+    setCopyNotice('');
   }
 
   function editTask(task) {
+    previousFocusRef.current = document.activeElement;
+
     setForm({
       ...task,
       dueDate: task.dueDate || '',
@@ -360,6 +434,7 @@ export default function App() {
     setEditing(true);
     setModalOpen(true);
     setHandoffNotice('');
+    setCopyNotice('');
   }
 
   function updateField(event) {
@@ -378,7 +453,6 @@ export default function App() {
     }));
   }
 
-  // M9: Update timestamp whenever context changes
   function updateContext(event) {
     const value = event.target.value;
     const timestamp = new Date().toISOString();
@@ -390,6 +464,20 @@ export default function App() {
     }));
 
     setNow(Date.now());
+  }
+
+  // M10: Copy the current task briefing
+  async function handleCopyContext(task) {
+    const briefing = createContextBriefing(task);
+
+    try {
+      await copyText(briefing);
+      setCopyNotice('Context copied. Ready to paste.');
+    } catch {
+      setCopyNotice(
+        "Couldn't copy. Select and copy the text manually."
+      );
+    }
   }
 
   function saveTask(event) {
@@ -469,7 +557,7 @@ export default function App() {
       <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">
-            sagir's Vibecoding Project Tracker
+            Vibecoding Project Tracker
           </h1>
 
           <p className="mt-1 text-sm text-slate-600">
@@ -478,36 +566,46 @@ export default function App() {
         </div>
 
         <button
+          type="button"
           onClick={addTask}
           className="rounded-lg px-5 py-3 font-semibold text-white hover:opacity-90"
-          style={{
-            backgroundColor: '#0F766E',
-          }}
+          style={{ backgroundColor: '#0F766E' }}
         >
           + Add task
         </button>
       </header>
 
-      {/* M7: Handoff notice */}
+      {/* Notifications */}
       {handoffNotice && (
         <div
           role="status"
-          className="mb-5 flex items-center justify-between rounded-lg border border-teal-300 bg-teal-50 p-4 text-teal-900"
+          className="mb-4 rounded-lg border border-teal-300 bg-teal-50 p-4 text-teal-900"
         >
-          <span>✓ {handoffNotice}</span>
+          ✓ {handoffNotice}
+        </div>
+      )}
+
+      {copyNotice && (
+        <div
+          role="status"
+          className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-teal-300 bg-teal-50 p-4 text-teal-900"
+        >
+          <span>{copyNotice}</span>
 
           <button
-            onClick={() => setHandoffNotice('')}
-            aria-label="Dismiss confirmation"
+            type="button"
+            onClick={() => setCopyNotice('')}
+            aria-label="Dismiss message"
+            className="font-bold"
           >
             ×
           </button>
         </div>
       )}
 
-      {/* M11: Anchor Board goes here */}
+      {/* M11: Anchor Board will go here */}
 
-      {/* M4-M9: Kanban board */}
+      {/* Kanban Board */}
       <main className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {STAGES.map((stage) => {
           const stageTasks = tasks.filter(
@@ -518,9 +616,7 @@ export default function App() {
             <section
               key={stage.id}
               className="min-h-80 rounded-xl p-4"
-              style={{
-                backgroundColor: '#F1F5F9',
-              }}
+              style={{ backgroundColor: '#F1F5F9' }}
             >
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">
@@ -541,55 +637,64 @@ export default function App() {
 
                 {stageTasks.map((task) => {
                   const due = getDueState(task, today);
-                  const dueStyle =
-                    DUE_STYLES[due.state];
+                  const dueStyle = DUE_STYLES[due.state];
 
                   return (
-                    <button
+                    <article
                       key={task.id}
-                      onClick={() => editTask(task)}
-                      className="block w-full rounded-xl border bg-white p-4 text-left shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700"
+                      className="overflow-hidden rounded-xl border bg-white shadow-sm"
                       style={{
                         borderColor: dueStyle.border,
                         borderLeftWidth: '5px',
                       }}
                     >
-                      <div className="mb-3 flex items-start justify-between gap-2">
-                        <h3 className="text-base font-semibold">
-                          {task.title}
-                        </h3>
+                      {/* Edit task area */}
+                      <button
+                        type="button"
+                        onClick={() => editTask(task)}
+                        className="block w-full p-4 text-left transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-teal-700"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-2">
+                          <h3 className="text-base font-semibold">
+                            {task.title}
+                          </h3>
 
-                        <TaskTypeBadge type={task.type} />
-                      </div>
+                          <TaskTypeBadge type={task.type} />
+                        </div>
 
-                      <p className="text-sm text-slate-600">
-                        {task.description}
-                      </p>
-
-                      <div className="mt-3">
-                        <DueBadge
-                          task={task}
-                          today={today}
-                        />
-                      </div>
-
-                      {/* M9: AI context indicator */}
-                      {task.context && (
-                        <p className="mt-3 text-xs font-medium text-teal-700">
-                          ✦ AI context saved
-                          {task.contextTool
-                            ? ` · ${task.contextTool}`
-                            : ''}
+                        <p className="text-sm text-slate-600">
+                          {task.description}
                         </p>
-                      )}
 
-                      {/* M7: Task owner */}
-                      <div className="mt-4 border-t border-slate-100 pt-3">
-                        <OwnerBadge
-                          name={task.assignee}
-                        />
+                        <div className="mt-3">
+                          <DueBadge task={task} today={today} />
+                        </div>
+
+                        {task.context && (
+                          <p className="mt-3 text-xs font-medium text-teal-700">
+                            ✦ AI context saved
+                            {task.contextTool
+                              ? ` · ${task.contextTool}`
+                              : ''}
+                          </p>
+                        )}
+
+                        <div className="mt-4 border-t border-slate-100 pt-3">
+                          <OwnerBadge name={task.assignee} />
+                        </div>
+                      </button>
+
+                      {/* M10: Independent Copy button */}
+                      <div className="border-t border-slate-100 px-4 pb-4 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyContext(task)}
+                          className="w-full rounded-lg border border-teal-600 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 focus-visible:outline-2 focus-visible:outline-teal-700"
+                        >
+                          ⧉ Copy Context
+                        </button>
                       </div>
-                    </button>
+                    </article>
                   );
                 })}
               </div>
@@ -598,14 +703,14 @@ export default function App() {
         })}
       </main>
 
-      {/* Create/Edit Task Modal */}
+      {/* Create / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"
             aria-labelledby="task-modal-title"
-            className="my-auto max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
           >
             <div className="mb-5 flex items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3">
@@ -613,17 +718,14 @@ export default function App() {
                   id="task-modal-title"
                   className="text-xl font-bold"
                 >
-                  {editing
-                    ? 'Edit task'
-                    : 'Create a task'}
+                  {editing ? 'Edit task' : 'Create a task'}
                 </h2>
 
-                <TaskTypeBadge
-                  type={form.type}
-                />
+                <TaskTypeBadge type={form.type} />
               </div>
 
               <button
+                ref={modalCloseRef}
                 type="button"
                 onClick={() => setModalOpen(false)}
                 aria-label="Close task form"
@@ -633,10 +735,7 @@ export default function App() {
               </button>
             </div>
 
-            <form
-              onSubmit={saveTask}
-              className="space-y-4"
-            >
+            <form onSubmit={saveTask} className="space-y-4">
               <label className="block text-sm font-medium">
                 Task Title *
                 <input
@@ -668,12 +767,8 @@ export default function App() {
                   onChange={updateField}
                   className="mt-1 w-full rounded-lg border p-3"
                 >
-                  <option value="feature">
-                    Feature
-                  </option>
-                  <option value="bug">
-                    Bug
-                  </option>
+                  <option value="feature">Feature</option>
+                  <option value="bug">Bug</option>
                 </select>
               </label>
 
@@ -686,25 +781,20 @@ export default function App() {
                   className="mt-1 w-full rounded-lg border p-3"
                 >
                   {STAGES.map((stage) => (
-                    <option
-                      key={stage.id}
-                      value={stage.id}
-                    >
+                    <option key={stage.id} value={stage.id}>
                       {stage.label}
                     </option>
                   ))}
                 </select>
               </label>
 
-              {/* M7: Handoff */}
+              {/* M7: Task Owner */}
               <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
                 <p className="mb-3 text-sm font-semibold text-teal-900">
                   Task Owner
                 </p>
 
-                <OwnerBadge
-                  name={form.assignee}
-                />
+                <OwnerBadge name={form.assignee} />
 
                 <label className="mt-4 block text-sm font-medium">
                   Hand off to...
@@ -715,10 +805,7 @@ export default function App() {
                     className="mt-2 w-full rounded-lg border bg-white p-3"
                   >
                     {TEAM.map((member) => (
-                      <option
-                        key={member}
-                        value={member}
-                      >
+                      <option key={member} value={member}>
                         {member}
                       </option>
                     ))}
@@ -758,10 +845,7 @@ export default function App() {
                   Deadline status
                 </p>
 
-                <DueBadge
-                  task={form}
-                  today={today}
-                />
+                <DueBadge task={form} today={today} />
               </div>
 
               {/* M9: AI Context */}
@@ -772,16 +856,12 @@ export default function App() {
                   </h3>
 
                   <span className="text-xs text-slate-500">
-                    {timeAgo(
-                      form.contextUpdatedAt,
-                      now
-                    )}
+                    {timeAgo(form.contextUpdatedAt, now)}
                   </span>
                 </div>
 
                 <p className="mb-3 text-sm text-slate-600">
                   Record your prompt, outcome and next step.
-                  Use Markdown headings to organise your notes.
                 </p>
 
                 <label className="block text-sm font-medium">
@@ -792,7 +872,7 @@ export default function App() {
                     onChange={updateContext}
                     rows={10}
                     placeholder={CONTEXT_TEMPLATE}
-                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm leading-relaxed focus:outline-teal-700"
+                    className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm leading-relaxed"
                   />
                 </label>
 
@@ -804,15 +884,10 @@ export default function App() {
                     onChange={updateField}
                     className="mt-2 w-full rounded-lg border border-slate-300 bg-white p-3"
                   >
-                    <option value="">
-                      Select an AI tool
-                    </option>
+                    <option value="">Select an AI tool</option>
 
                     {AI_TOOLS.map((tool) => (
-                      <option
-                        key={tool}
-                        value={tool}
-                      >
+                      <option key={tool} value={tool}>
                         {tool}
                       </option>
                     ))}
@@ -828,12 +903,32 @@ export default function App() {
                   </p>
                 )}
 
+                {/* M10: Copy Context inside modal */}
+                <button
+                  type="button"
+                  onClick={() => handleCopyContext(form)}
+                  className="mt-4 w-full rounded-lg border border-teal-600 bg-white px-4 py-3 font-semibold text-teal-800 transition hover:bg-teal-100"
+                >
+                  ⧉ Copy Context
+                </button>
+
                 <p className="mt-2 text-xs text-slate-500">
-                  Changes are stored when you click Save task.
+                  Copies the task title, description and full
+                  Markdown context. Save task to keep edits.
                 </p>
               </section>
 
-              {/* Actions */}
+              {/* M10: Copy feedback inside modal */}
+              {copyNotice && (
+                <p
+                  role="status"
+                  className="rounded-lg bg-teal-50 p-3 text-sm font-medium text-teal-800"
+                >
+                  {copyNotice}
+                </p>
+              )}
+
+              {/* Save / Cancel / Delete */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 {editing ? (
                   <button
@@ -859,9 +954,7 @@ export default function App() {
                   <button
                     type="submit"
                     className="rounded-lg px-4 py-2 text-white"
-                    style={{
-                      backgroundColor: '#0F766E',
-                    }}
+                    style={{ backgroundColor: '#0F766E' }}
                   >
                     Save task
                   </button>
