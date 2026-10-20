@@ -9,14 +9,14 @@ export const STAGES = [
   { id: 'done', label: 'Done' },
 ];
 
-// Replace with real names from PRD section 8
+// Replace with the names in your PRD
 export const TEAM = [
   'Teammate A',
   'Teammate B',
   'Teammate C',
 ];
 
-// M6: Feature and Bug styles from DESIGN.md
+// M6: Task type colours
 const TASK_STYLES = {
   feature: {
     label: 'Feature',
@@ -32,7 +32,7 @@ const TASK_STYLES = {
   },
 };
 
-// M8: Deadline styles
+// M8: Deadline colours
 const DUE_STYLES = {
   calm: {
     color: '#334155',
@@ -74,16 +74,38 @@ const CONTEXT_TEMPLATE = `## Background
 ## Pick up
 `;
 
-// Dates in local time
+// M11: Four permanent deliverables
+const DELIVERABLES = [
+  { id: 'presentation', label: 'Presentation', icon: '▣' },
+  { id: 'demo', label: 'Demo', icon: '▶' },
+  { id: 'report', label: 'Report', icon: '▤' },
+  { id: 'documentation', label: 'Documentation', icon: '▥' },
+];
+
+const INITIAL_ANCHORS = {
+  presentation: '',
+  demo: '',
+  report: '',
+  documentation: '',
+};
+
+function isValidUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ||
+      url.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
 function localDate(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
-
   return `${year}-${month}-${day}`;
 }
 
-// M8: Deadline calculation
 function getDueState(task, today) {
   if (task.status === 'done') {
     return { state: 'neutral', label: 'Completed' };
@@ -122,7 +144,7 @@ function TaskTypeBadge({ type }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold"
       style={{
         color: style.color,
         backgroundColor: style.background,
@@ -151,7 +173,6 @@ function DueBadge({ task, today }) {
   );
 }
 
-// M7: Task owner
 function getInitials(name) {
   if (!name) return '?';
 
@@ -185,7 +206,6 @@ function OwnerBadge({ name }) {
   );
 }
 
-// M9: Human-readable context timestamp
 function timeAgo(timestamp, now) {
   if (!timestamp) return 'Not updated yet';
 
@@ -201,47 +221,29 @@ function timeAgo(timestamp, now) {
   );
 
   if (minutes < 1) return 'Updated just now';
-
-  if (minutes < 60) {
-    return `Updated ${minutes} min ago`;
-  }
+  if (minutes < 60) return `Updated ${minutes} min ago`;
 
   const hours = Math.floor(minutes / 60);
 
-  if (hours < 24) {
-    return `Updated ${hours} h ago`;
-  }
+  if (hours < 24) return `Updated ${hours} h ago`;
 
   return `Updated ${Math.floor(hours / 24)} d ago`;
 }
 
-// M10: Format a task as a Markdown briefing
+// M10: Build Markdown briefing
 function createContextBriefing(task) {
-  const title = task.title || 'Untitled task';
-  const description = task.description || 'No description provided.';
-  const context = task.context?.trim() || 'No AI context recorded.';
-
   return [
-    `# ${title}`,
+    `# ${task.title || 'Untitled task'}`,
     '',
     '## Description',
-    description,
+    task.description || 'No description provided.',
     '',
     '## AI Context',
-    context,
+    task.context?.trim() || 'No AI context recorded.',
   ].join('\n');
 }
 
-// M10: Copy text to clipboard
-async function copyText(text) {
-  if (!navigator.clipboard?.writeText) {
-    throw new Error('Clipboard API unavailable');
-  }
-
-  await navigator.clipboard.writeText(text);
-}
-
-// Persistent localStorage
+// Persistent storage for tasks and anchors
 export function useLocalStorage(key, initialValue) {
   const [value, setValue] = useState(() => {
     try {
@@ -254,10 +256,7 @@ export function useLocalStorage(key, initialValue) {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(
-        key,
-        JSON.stringify(value)
-      );
+      window.localStorage.setItem(key, JSON.stringify(value));
     } catch {
       console.error("Changes couldn't be saved.");
     }
@@ -266,7 +265,6 @@ export function useLocalStorage(key, initialValue) {
   return [value, setValue];
 }
 
-// M4: Starter tasks
 const initialTasks = [
   {
     id: 'task-1',
@@ -326,25 +324,104 @@ function emptyTask() {
   };
 }
 
+// M11: Deliverable card component
+function DeliverableCard({ item, value, onChange }) {
+  const text = value || '';
+  const filled = isValidUrl(text.trim());
+  const invalid = text.trim() !== '' && !filled;
+
+  return (
+    <div className="rounded-xl border border-slate-300 bg-white p-4 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="flex items-center gap-2 font-semibold text-slate-900">
+          <span className="text-xl text-teal-700">
+            {item.icon}
+          </span>
+          {item.label}
+        </h3>
+
+        <span
+          className="h-3 w-3 rounded-full"
+          style={{
+            backgroundColor: filled ? '#16A34A' : '#CBD5E1',
+          }}
+          aria-label={filled ? 'Link added' : 'No valid link'}
+          title={filled ? 'Link added' : 'No valid link'}
+        />
+      </div>
+
+      <label
+        htmlFor={`anchor-${item.id}`}
+        className="mb-1 block text-xs font-medium text-slate-600"
+      >
+        Deliverable URL
+      </label>
+
+      <input
+        id={`anchor-${item.id}`}
+        type="url"
+        value={text}
+        onChange={(event) => onChange(item.id, event.target.value)}
+        placeholder="https://example.com/..."
+        aria-invalid={invalid}
+        className="w-full rounded-lg border border-slate-300 bg-slate-50 p-2 text-sm focus:outline-2 focus:outline-teal-700"
+      />
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span
+          className={`text-xs font-medium ${
+            filled ? 'text-green-700' : 'text-slate-500'
+          }`}
+        >
+          {filled ? '● Link saved' : '○ No valid link'}
+        </span>
+
+        {filled && (
+          <a
+            href={text.trim()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-semibold text-teal-700 underline"
+          >
+            Open link ↗
+          </a>
+        )}
+      </div>
+
+      {invalid && (
+        <p className="mt-2 text-xs text-red-700">
+          Enter a full link starting with https:// or http://.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const [tasks, setTasks] = useLocalStorage(
     'vibetracker.tasks',
     initialTasks
   );
 
+  // M11: Anchors saved separately from tasks
+  const [anchors, setAnchors] = useLocalStorage(
+    'vibetracker.anchors',
+    INITIAL_ANCHORS
+  );
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(emptyTask);
-
   const [handoffNotice, setHandoffNotice] = useState('');
   const [copyNotice, setCopyNotice] = useState('');
 
   const [now, setNow] = useState(() => Date.now());
   const today = localDate(new Date(now));
+
   const modalCloseRef = useRef(null);
   const previousFocusRef = useRef(null);
 
-  // Refresh deadline and context timestamps
+  // Refresh deadlines and relative timestamps
   useEffect(() => {
     const refresh = () => setNow(Date.now());
 
@@ -360,7 +437,7 @@ export default function App() {
     };
   }, []);
 
-  // Keep focus inside the modal while it is open
+  // Keep keyboard focus inside the modal
   useEffect(() => {
     if (!modalOpen) return;
 
@@ -371,35 +448,34 @@ export default function App() {
         setModalOpen(false);
       }
 
-      if (event.key === 'Tab') {
-        const dialog = document.querySelector(
-          '[role="dialog"]'
-        );
+      if (event.key !== 'Tab') return;
 
-        if (!dialog) return;
+      const dialog = document.querySelector('[role="dialog"]');
+      if (!dialog) return;
 
-        const focusable = Array.from(
-          dialog.querySelectorAll(
-            'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
-          )
-        );
+      const focusable = Array.from(
+        dialog.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
 
-        if (!focusable.length) return;
+      if (!focusable.length) return;
 
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
 
-        if (event.shiftKey &&
-            document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (
-          !event.shiftKey &&
-          document.activeElement === last
-        ) {
-          event.preventDefault();
-          first.focus();
-        }
+      if (
+        event.shiftKey &&
+        document.activeElement === first
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        document.activeElement === last
+      ) {
+        event.preventDefault();
+        first.focus();
       }
     }
 
@@ -410,6 +486,14 @@ export default function App() {
       previousFocusRef.current?.focus();
     };
   }, [modalOpen]);
+
+  // M11: Save changes as links are entered
+  function updateAnchor(id, value) {
+    setAnchors((previous) => ({
+      ...previous,
+      [id]: value,
+    }));
+  }
 
   function addTask() {
     previousFocusRef.current = document.activeElement;
@@ -466,12 +550,16 @@ export default function App() {
     setNow(Date.now());
   }
 
-  // M10: Copy the current task briefing
+  // M10: Copy task briefing
   async function handleCopyContext(task) {
     const briefing = createContextBriefing(task);
 
     try {
-      await copyText(briefing);
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard unavailable');
+      }
+
+      await navigator.clipboard.writeText(briefing);
       setCopyNotice('Context copied. Ready to paste.');
     } catch {
       setCopyNotice(
@@ -512,10 +600,7 @@ export default function App() {
       ]);
     }
 
-    if (
-      oldTask &&
-      oldTask.assignee !== savedTask.assignee
-    ) {
+    if (oldTask && oldTask.assignee !== savedTask.assignee) {
       setHandoffNotice(
         `Task handed off to ${savedTask.assignee}.`
       );
@@ -535,9 +620,7 @@ export default function App() {
       )
     ) {
       setTasks((previous) =>
-        previous.filter(
-          (task) => task.id !== form.id
-        )
+        previous.filter((task) => task.id !== form.id)
       );
 
       setModalOpen(false);
@@ -603,9 +686,47 @@ export default function App() {
         </div>
       )}
 
-      {/* M11: Anchor Board will go here */}
+      {/* M11: Deliverable Anchor Board */}
+      <section
+        aria-labelledby="deliverables-title"
+        className="mb-8"
+      >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2
+              id="deliverables-title"
+              className="text-xl font-bold text-slate-900"
+            >
+              Project Deliverables
+            </h2>
 
-      {/* Kanban Board */}
+            <p className="mt-1 text-sm text-slate-500">
+              Keep the four final project links in one place.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-teal-100 px-3 py-1 text-sm font-medium text-teal-800">
+            {
+              DELIVERABLES.filter((item) =>
+                isValidUrl((anchors?.[item.id] || '').trim())
+              ).length
+            } / 4 linked
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {DELIVERABLES.map((item) => (
+            <DeliverableCard
+              key={item.id}
+              item={item}
+              value={anchors?.[item.id] || ''}
+              onChange={updateAnchor}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* M4-M10: Kanban Board */}
       <main className="grid grid-cols-1 gap-4 md:grid-cols-4">
         {STAGES.map((stage) => {
           const stageTasks = tasks.filter(
@@ -648,7 +769,6 @@ export default function App() {
                         borderLeftWidth: '5px',
                       }}
                     >
-                      {/* Edit task area */}
                       <button
                         type="button"
                         onClick={() => editTask(task)}
@@ -684,12 +804,11 @@ export default function App() {
                         </div>
                       </button>
 
-                      {/* M10: Independent Copy button */}
                       <div className="border-t border-slate-100 px-4 pb-4 pt-3">
                         <button
                           type="button"
                           onClick={() => handleCopyContext(task)}
-                          className="w-full rounded-lg border border-teal-600 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100 focus-visible:outline-2 focus-visible:outline-teal-700"
+                          className="w-full rounded-lg border border-teal-600 bg-teal-50 px-3 py-2 text-sm font-semibold text-teal-800 transition hover:bg-teal-100"
                         >
                           ⧉ Copy Context
                         </button>
@@ -703,7 +822,7 @@ export default function App() {
         })}
       </main>
 
-      {/* Create / Edit Modal */}
+      {/* M5-M10: Create / Edit Task Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div
@@ -788,7 +907,7 @@ export default function App() {
                 </select>
               </label>
 
-              {/* M7: Task Owner */}
+              {/* M7: Task owner / handoff */}
               <div className="rounded-xl border border-teal-200 bg-teal-50 p-4">
                 <p className="mb-3 text-sm font-semibold text-teal-900">
                   Task Owner
@@ -903,22 +1022,16 @@ export default function App() {
                   </p>
                 )}
 
-                {/* M10: Copy Context inside modal */}
+                {/* M10: Copy inside modal */}
                 <button
                   type="button"
                   onClick={() => handleCopyContext(form)}
-                  className="mt-4 w-full rounded-lg border border-teal-600 bg-white px-4 py-3 font-semibold text-teal-800 transition hover:bg-teal-100"
+                  className="mt-4 w-full rounded-lg border border-teal-600 bg-white px-4 py-3 font-semibold text-teal-800 hover:bg-teal-100"
                 >
                   ⧉ Copy Context
                 </button>
-
-                <p className="mt-2 text-xs text-slate-500">
-                  Copies the task title, description and full
-                  Markdown context. Save task to keep edits.
-                </p>
               </section>
 
-              {/* M10: Copy feedback inside modal */}
               {copyNotice && (
                 <p
                   role="status"
@@ -928,7 +1041,7 @@ export default function App() {
                 </p>
               )}
 
-              {/* Save / Cancel / Delete */}
+              {/* Actions */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
                 {editing ? (
                   <button
