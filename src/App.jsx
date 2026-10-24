@@ -1124,12 +1124,6 @@ export default function App() {
   }, [modalOpen]);
 
   
-      {/* Project Overview: Intent to Ship */}
-      <ProjectOverview
-        project={project}
-        onSave={setProject}
-      />
-
   // ========================================
   // M11: DELIVERABLE LINKS
   // ========================================
@@ -1460,6 +1454,13 @@ export default function App() {
           </button>
         </div>
       )}
+      
+      {/* Project Overview: Intent to Ship */}
+      <ProjectOverview
+        project={project}
+        onSave={setProject}
+      />
+
 
       {/* ====================================
           M11: PROJECT DELIVERABLES
