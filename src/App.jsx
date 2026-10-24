@@ -748,11 +748,262 @@ function ProjectInsights({ tasks, today }) {
 // MAIN APPLICATION
 // ==========================================
 
+const PROJECT_STAGES = [
+  'Intent',
+  'Plan',
+  'Build',
+  'Validate',
+  'Ship',
+];
+
+const INITIAL_PROJECT = {
+  name: '',
+  description: '',
+  problem: '',
+  objectives: '',
+  constraints: '',
+  techStack: '',
+  stage: 'Intent',
+  lead: TEAM[0],
+  releaseDate: '',
+};
+
+function ProjectOverview({ project, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(project);
+
+  function startEditing() {
+    setDraft({ ...INITIAL_PROJECT, ...project });
+    setEditing(true);
+  }
+
+  function updateField(event) {
+    const { name, value } = event.target;
+
+    setDraft((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  }
+
+  function saveProject(event) {
+    event.preventDefault();
+
+    if (!draft.name.trim()) {
+      return;
+    }
+
+    onSave({
+      ...draft,
+      name: draft.name.trim(),
+    });
+
+    setEditing(false);
+  }
+
+  const details = {
+    ...INITIAL_PROJECT,
+    ...project,
+  };
+
+  return (
+    <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="mb-1 text-xs font-bold uppercase tracking-wider text-teal-700">
+            Project Overview
+          </p>
+
+          <h2 className="text-2xl font-bold text-slate-900">
+            {details.name || 'Start your project'}
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-600">
+            {details.description ||
+              'Define your project intent, goals and development plan.'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={startEditing}
+          className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800"
+        >
+          Edit Project
+        </button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl bg-slate-50 p-4">
+          <p className="text-xs text-slate-500">Lifecycle Stage</p>
+          <p className="mt-1 font-semibold text-teal-800">
+            {details.stage}
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-slate-50 p-4">
+          <p className="text-xs text-slate-500">Project Lead</p>
+          <p className="mt-1 font-semibold">
+            {details.lead}
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-slate-50 p-4">
+          <p className="text-xs text-slate-500">Technology Stack</p>
+          <p className="mt-1 font-semibold">
+            {details.techStack || 'Not specified'}
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-slate-50 p-4">
+          <p className="text-xs text-slate-500">Target Release</p>
+          <p className="mt-1 font-semibold">
+            {details.releaseDate || 'Not set'}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+        {[
+          ['Problem Statement', details.problem],
+          ['Project Objectives', details.objectives],
+          ['Constraints', details.constraints],
+        ].map(([heading, value]) => (
+          <div
+            key={heading}
+            className="rounded-xl border border-slate-200 p-4"
+          >
+            <h3 className="mb-2 font-semibold text-slate-900">
+              {heading}
+            </h3>
+
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+              {value || 'Not specified yet.'}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="project-dialog-title"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
+          >
+            <h2
+              id="project-dialog-title"
+              className="mb-5 text-xl font-bold"
+            >
+              Edit Project Overview
+            </h2>
+
+            <form onSubmit={saveProject} className="space-y-4">
+              {[
+                ['name', 'Project Name', 'text'],
+                ['description', 'Short Description', 'text'],
+                ['techStack', 'Technology Stack', 'text'],
+                ['releaseDate', 'Target Release Date', 'date'],
+              ].map(([name, label, type]) => (
+                <label key={name} className="block text-sm font-medium">
+                  {label}
+                  <input
+                    type={type}
+                    name={name}
+                    required={name === 'name'}
+                    value={draft[name]}
+                    onChange={updateField}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-3"
+                  />
+                </label>
+              ))}
+
+              <label className="block text-sm font-medium">
+                Lifecycle Stage
+                <select
+                  name="stage"
+                  value={draft.stage}
+                  onChange={updateField}
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-3"
+                >
+                  {PROJECT_STAGES.map((stage) => (
+                    <option key={stage} value={stage}>
+                      {stage}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm font-medium">
+                Project Lead
+                <select
+                  name="lead"
+                  value={draft.lead}
+                  onChange={updateField}
+                  className="mt-1 w-full rounded-lg border border-slate-300 p-3"
+                >
+                  {TEAM.map((member) => (
+                    <option key={member} value={member}>
+                      {member}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {[
+                ['problem', 'Problem Statement'],
+                ['objectives', 'Project Objectives'],
+                ['constraints', 'Project Constraints'],
+              ].map(([name, label]) => (
+                <label key={name} className="block text-sm font-medium">
+                  {label}
+                  <textarea
+                    name={name}
+                    value={draft[name]}
+                    onChange={updateField}
+                    rows={3}
+                    className="mt-1 w-full rounded-lg border border-slate-300 p-3"
+                  />
+                </label>
+              ))}
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="rounded-lg border border-slate-300 px-4 py-2"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800"
+                >
+                  Save Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function App() {
   const [tasks, setTasks] = useLocalStorage(
     'vibetracker.tasks',
     initialTasks
   );
+  
+  // Project details persist separately from tasks
+  const [project, setProject] = useLocalStorage(
+    'vibetracker.project',
+    INITIAL_PROJECT
+  );
+
 
   const [anchors, setAnchors] = useLocalStorage(
     'vibetracker.anchors',
@@ -871,6 +1122,13 @@ export default function App() {
       previousFocusRef.current?.focus();
     };
   }, [modalOpen]);
+
+  
+      {/* Project Overview: Intent to Ship */}
+      <ProjectOverview
+        project={project}
+        onSave={setProject}
+      />
 
   // ========================================
   // M11: DELIVERABLE LINKS
