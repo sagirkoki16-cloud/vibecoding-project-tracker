@@ -1133,13 +1133,7 @@ export default function App() {
   }, [modalOpen]);
 
   
-  // Export the current project as demonstration data
-  function exportDemoData() {
-    const demoData = {
-      project,
-      tasks,
-      anchors,
-    };
+  
 
     const json = JSON.stringify(demoData, null, 2);
 
@@ -1440,13 +1434,7 @@ export default function App() {
         </div>
 
 
-        <button
-          type="button"
-          onClick={exportDemoData}
-          className="rounded-lg border border-teal-700 bg-white px-5 py-3 font-semibold text-teal-800 hover:bg-teal-50"
-        >
-          ↓ Export Data
-        </button>
+        
 
         <button
           type="button"
