@@ -1,6 +1,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+import demoData from './demoData.json';
+
+
 // ==========================================
 // M4: KANBAN DATA MODEL
 // ==========================================
@@ -993,22 +996,28 @@ function ProjectOverview({ project, onSave }) {
 }
 
 export default function App() {
-  const [tasks, setTasks] = useLocalStorage(
-    'vibetracker.tasks',
-    initialTasks
-  );
+
   
   // Project details persist separately from tasks
+ 
+  // Tasks: use demonstration data for new visitors
+  const [tasks, setTasks] = useLocalStorage(
+    'vibetracker.tasks',
+    demoData.tasks ?? initialTasks
+  );
+
+  // Project Overview
   const [project, setProject] = useLocalStorage(
     'vibetracker.project',
-    INITIAL_PROJECT
+    demoData.project ?? INITIAL_PROJECT
   );
 
-
+  // Project Deliverables
   const [anchors, setAnchors] = useLocalStorage(
     'vibetracker.anchors',
-    INITIAL_ANCHORS
+    demoData.anchors ?? INITIAL_ANCHORS
   );
+
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -1122,6 +1131,37 @@ export default function App() {
       previousFocusRef.current?.focus();
     };
   }, [modalOpen]);
+
+  
+  // Export the current project as demonstration data
+  function exportDemoData() {
+    const demoData = {
+      project,
+      tasks,
+      anchors,
+    };
+
+    const json = JSON.stringify(demoData, null, 2);
+
+    const blob = new Blob([json], {
+      type: 'application/json',
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = 'demoData.json';
+
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }
+
 
   
   // ========================================
@@ -1398,6 +1438,15 @@ export default function App() {
             Team starter
           </p>
         </div>
+
+
+        <button
+          type="button"
+          onClick={exportDemoData}
+          className="rounded-lg border border-teal-700 bg-white px-5 py-3 font-semibold text-teal-800 hover:bg-teal-50"
+        >
+          ↓ Export Data
+        </button>
 
         <button
           type="button"

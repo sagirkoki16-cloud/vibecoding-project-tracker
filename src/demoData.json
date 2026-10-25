@@ -1,0 +1,125 @@
+{
+  "project": {
+    "name": "Vibecoding Project Tracker",
+    "description": "A collaborative project management platform that enables teams to monitor AI-assisted software development from initial intent and planning through implementation, validation and shipping.",
+    "problem": "Teams using AI-assisted development tools can struggle to maintain visibility over project progress, task ownership, AI-generated decisions and outstanding work. When development moves between teammates or AI tools, important context may be lost, leading to repeated prompts, duplicated effort and unclear responsibilities. A central workspace is needed to track tasks, preserve AI development context and monitor progress from intent to ship.",
+    "objectives": "1. Capture a project's intent, goals and constraints.\n2. Organise development tasks using a visual Kanban board.\n3. Assign tasks to team members and support handoffs.\n4. Preserve AI prompts, decisions, outcomes and next steps.\n5. Monitor deadlines, team workload and overall progress.\n6. Track validation activities and project deliverables.\n7. Support a clear workflow from project initiation to shipping.",
+    "constraints": "The initial prototype is developed individually and must use free development tools. It should demonstrate collaborative workflows using representative team members. The current implementation uses browser localStorage, so live synchronisation across devices is not yet supported. The prototype must be accessible through a link without requiring the lecturer to register.",
+    "techStack": "React, JavaScript, Tailwind CSS, Vite, GitHub",
+    "stage": "Build",
+    "lead": "Teammate A",
+    "releaseDate": "2026-11-05"
+  },
+  "tasks": [
+    {
+      "id": "9dc5c669-3f0d-407f-8af8-15b18eda9d7f",
+      "title": "Define project requirements",
+      "description": "",
+      "type": "feature",
+      "status": "done",
+      "assignee": "Teammate A",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "ChatGPT",
+      "contextUpdatedAt": null
+    },
+    {
+      "id": "8e83f83f-b83c-4a80-bd79-55afa19cb52b",
+      "title": "Design Kanban interface",
+      "description": "",
+      "type": "feature",
+      "status": "done",
+      "assignee": "Teammate B",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "Claude",
+      "contextUpdatedAt": null
+    },
+    {
+      "id": "2cde36f8-5dc0-40fe-be88-5b6685444f61",
+      "title": "Implement task CRUD functionality",
+      "description": "",
+      "type": "feature",
+      "status": "done",
+      "assignee": "Teammate A",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "ChatGPT",
+      "contextUpdatedAt": null
+    },
+    {
+      "id": "d54df829-aa63-4c34-a018-ff2d4e811b23",
+      "title": "Fix task deadline calculation",
+      "description": "",
+      "type": "bug",
+      "status": "todo",
+      "assignee": "Teammate C",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "Cursor",
+      "contextUpdatedAt": null
+    },
+    {
+      "id": "c8443a54-691f-4c2d-9ebe-86d62f0bc88d",
+      "title": "Develop AI context handoff",
+      "description": "",
+      "type": "feature",
+      "status": "in-progress",
+      "assignee": "Teammate B",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "ChatGPT",
+      "contextUpdatedAt": null
+    },
+    {
+      "id": "3a0e66de-a9e9-465e-badd-0d18b0706c04",
+      "title": "Test task interactions",
+      "description": "",
+      "type": "bug",
+      "status": "review",
+      "assignee": "Teammate C",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "Claude",
+      "contextUpdatedAt": null
+    },
+    {
+      "id": "b5e9e344-c2dc-4ec0-b59c-6f4b0ac9f473",
+      "title": "Prepare deployment and documentation",
+      "description": "",
+      "type": "feature",
+      "status": "todo",
+      "assignee": "Teammate A",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "ChatGPT",
+      "contextUpdatedAt": null
+    },
+    {
+      "id": "04a628ff-b41a-4389-8060-ebb7100ff7fe",
+      "title": "Improve team management",
+      "description": "",
+      "type": "feature",
+      "status": "todo",
+      "assignee": "Teammate C",
+      "dueDate": "2026-10-31",
+      "createdDate": "2026-10-25",
+      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "contextTool": "Lovable",
+      "contextUpdatedAt": null
+    }
+  ],
+  "anchors": {
+    "presentation": "",
+    "demo": "",
+    "report": "",
+    "documentation": ""
+  }
+}
