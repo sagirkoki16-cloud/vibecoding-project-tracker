@@ -72,9 +72,9 @@
       "assignee": "Teammate B",
       "dueDate": "2026-10-31",
       "createdDate": "2026-10-25",
-      "context": "## Background\n\n## Constraints\n\n## Tried so far\n\n## Pick up\n",
+      "context": "## Background\nThe Vibecoding Project Tracker needs to preserve AI-assisted development context between tasks and team handoffs.\n\n## Constraints\nUse React, JavaScript and localStorage. Avoid paid AI APIs and maintain a simple interface.\n\n## Tried so far\nImplemented a Markdown context editor, AI tool selection and Copy Context functionality.\n\n## Pick up\nTest whether copied context is complete, assess handoff usability and investigate future context-history support.",
       "contextTool": "ChatGPT",
-      "contextUpdatedAt": null
+      "contextUpdatedAt": "2026-10-25T13:11:12.996Z"
     },
     {
       "id": "3a0e66de-a9e9-465e-badd-0d18b0706c04",
@@ -118,7 +118,7 @@
   ],
   "anchors": {
     "presentation": "",
-    "demo": "",
+    "demo": "https://vibecoding-project-tracker-six.vercel.app/?utm_source=chatgpt.com",
     "report": "",
     "documentation": ""
   }
