@@ -1133,28 +1133,8 @@ export default function App() {
   }, [modalOpen]);
 
   
+  // Export the current project as demonstration data
   
-
-    const json = JSON.stringify(demoData, null, 2);
-
-    const blob = new Blob([json], {
-      type: 'application/json',
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-
-    link.href = url;
-    link.download = 'demoData.json';
-
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-
-    window.setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 1000);
-  }
 
 
   
